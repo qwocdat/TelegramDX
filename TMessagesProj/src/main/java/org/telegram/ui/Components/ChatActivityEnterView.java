@@ -182,6 +182,7 @@ import org.telegram.ui.Components.Forum.ForumUtilities;
 import org.telegram.ui.Components.Premium.PremiumFeatureBottomSheet;
 import org.telegram.ui.Components.Premium.boosts.BoostRepository;
 import org.telegram.ui.Components.blur3.BlurredBackgroundDrawableViewFactory;
+import org.telegram.ui.Components.blur3.DXLiquidGlassShader;
 import org.telegram.ui.Components.blur3.drawable.BlurredBackgroundDrawable;
 import org.telegram.ui.Components.blur3.drawable.color.BlurredBackgroundColorProviderThemed;
 import org.telegram.ui.Components.chat.SendButtonBlockedByTypingView;
@@ -2681,6 +2682,15 @@ public class ChatActivityEnterView extends FrameLayout implements
                     return botWebViewButton.dispatchTouchEvent(ev);
                 }
                 return super.dispatchTouchEvent(ev);
+            }
+
+            @Override
+            protected void dispatchDraw(Canvas canvas) {
+                super.dispatchDraw(canvas);
+                if (getWidth() > dp(16) && getHeight() > dp(16)) {
+                    AndroidUtilities.rectTmp.set(dp(6), dp(2), getWidth() - dp(6), getHeight() - dp(2));
+                    DXLiquidGlassShader.drawGlassRim(canvas, AndroidUtilities.rectTmp, dp(22), Theme.isCurrentThemeDark(), 0.65f);
+                }
             }
         };
         textFieldContainer.setClipChildren(false);

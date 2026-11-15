@@ -83,6 +83,13 @@ import org.telegram.utils.glass.source.GlassSourceColor;
 import org.telegram.utils.glass.source.GlassSourceRenderNode;
 import org.telegram.ui.Components.chat.ViewPositionWatcher;
 import org.telegram.ui.Components.glass.GlassTabView;
+import org.telegram.ui.Components.blur3.DXLiquidGlassShader;
+import android.widget.ImageView;
+import android.graphics.RectF;
+import androidx.dynamicanimation.animation.DynamicAnimation;
+import androidx.dynamicanimation.animation.FloatValueHolder;
+import androidx.dynamicanimation.animation.SpringAnimation;
+import androidx.dynamicanimation.animation.SpringForce;
 import org.telegram.ui.Stories.recorder.HintView2;
 import org.telegram.ui.Wallet.WalletActivity;
 
@@ -123,6 +130,16 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     private FrameLayout tabsViewWrapper;
     private MainTabsLayout tabsView;
     private BlurredBackgroundDrawable tabsViewBackground;
+    private static MainTabsActivity dxActiveInstance;
+    private FrameLayout dxCameraBtn;
+    private FrameLayout dxNewGroupBtn;
+    private ImageView dxCameraIcon;
+    private ImageView dxMenuIcon;
+    private float dxMorphTarget = 0f;
+    private float dxMorphCurrent = 0f;
+    private SpringAnimation dxMorphSpring;
+    private Object dxMetaballRenderer;
+
     private View fadeView;
 
     public MainTabsActivity() {
@@ -396,11 +413,118 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         contentView.addView(fadeView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 0, Gravity.BOTTOM));
 
-        tabsViewWrapper = new FrameLayout(context);
+        dxActiveInstance = this;
+        DXLiquidGlassShader.ensureGravitySensor(context);
+        if (Build.VERSION.SDK_INT >= 33) {
+            dxMetaballRenderer = new DXLiquidGlassShader.MetaballRenderer();
+        }
+        tabsViewWrapper = new FrameLayout(context) {
+            @Override
+            protected void dispatchDraw(@NonNull Canvas canvas) {
+                if (DXModConfig.isMorphTabBarEnabled() && DXModConfig.isLiquidGlassEnabled()
+                        && Build.VERSION.SDK_INT >= 33 && dxMetaballRenderer instanceof DXLiquidGlassShader.MetaballRenderer
+                        && dxMorphCurrent > 0.01f && dxCameraBtn != null && dxNewGroupBtn != null && tabsView != null) {
+                    float lCx = dxCameraBtn.getX() + dxCameraBtn.getTranslationX() + dxCameraBtn.getWidth() / 2f;
+                    float lCy = dxCameraBtn.getY() + dxCameraBtn.getTranslationY() + dxCameraBtn.getHeight() / 2f;
+                    float lHw = dxCameraBtn.getWidth() * dxCameraBtn.getScaleX() / 2f;
+                    float lHh = dxCameraBtn.getHeight() * dxCameraBtn.getScaleY() / 2f;
+                    float cCx = tabsView.getX() + tabsView.getTranslationX() + tabsView.getWidth() / 2f;
+                    float cCy = tabsView.getY() + tabsView.getTranslationY() + tabsView.getHeight() / 2f;
+                    float cHw = Math.max(0f, (tabsView.getWidth() * tabsView.getScaleX() - dp(16)) / 2f);
+                    float cHh = Math.max(0f, (tabsView.getHeight() * tabsView.getScaleY() - dp(16)) / 2f);
+                    float rCx = dxNewGroupBtn.getX() + dxNewGroupBtn.getTranslationX() + dxNewGroupBtn.getWidth() / 2f;
+                    float rCy = dxNewGroupBtn.getY() + dxNewGroupBtn.getTranslationY() + dxNewGroupBtn.getHeight() / 2f;
+                    float rHw = dxNewGroupBtn.getWidth() * dxNewGroupBtn.getScaleX() / 2f;
+                    float rHh = dxNewGroupBtn.getHeight() * dxNewGroupBtn.getScaleY() / 2f;
+                    float smoothK = dp(24f) * (0.4f + 0.6f * (1f - Math.abs(dxMorphCurrent - 0.55f)));
+                    ((DXLiquidGlassShader.MetaballRenderer) dxMetaballRenderer).draw(
+                        canvas, getWidth(), getHeight(),
+                        lCx, lCy, lHw, lHh, cCx, cCy, cHw, cHh, rCx, rCy, rHw, rHh,
+                        smoothK, Theme.isCurrentThemeDark()
+                    );
+                }
+                super.dispatchDraw(canvas);
+            }
+        };
         tabsViewWrapper.setOnClickListener(v -> {});
-        tabsViewWrapper.addView(tabsView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
+        tabsViewWrapper.setClipChildren(false);
         tabsViewWrapper.setClipToPadding(false);
+
+        final int pillSize = dp(48);
+        dxCameraBtn = new FrameLayout(context) {
+            @Override
+            protected void dispatchDraw(@NonNull Canvas canvas) {
+                super.dispatchDraw(canvas);
+                RectF rf = AndroidUtilities.rectTmp;
+                rf.set(dp(1), dp(1), getWidth() - dp(1), getHeight() - dp(1));
+                DXLiquidGlassShader.drawGlassRim(canvas, rf, rf.height() / 2f, Theme.isCurrentThemeDark(), 1f);
+            }
+        };
+        dxCameraBtn.setBackground(iBlur3FactoryGlass.create(dxCameraBtn, BlurredBackgroundProviderImpl.mainTabs(resourceProvider)));
+        if (dxCameraBtn.getBackground() instanceof BlurredBackgroundDrawable) {
+            ((BlurredBackgroundDrawable) dxCameraBtn.getBackground()).setRadius(pillSize / 2f);
+        }
+        dxCameraIcon = new ImageView(context);
+        dxCameraIcon.setImageResource(R.drawable.outline_fab_story_24);
+        dxCameraIcon.setColorFilter(Theme.getColor(Theme.key_glass_defaultIcon, resourceProvider));
+        dxCameraIcon.setScaleType(ImageView.ScaleType.CENTER);
+        dxCameraBtn.addView(dxCameraIcon, LayoutHelper.createFrame(26, 26, Gravity.CENTER));
+
+        dxMenuIcon = new ImageView(context);
+        dxMenuIcon.setImageResource(R.drawable.ic_ab_other);
+        dxMenuIcon.setRotation(90f);
+        dxMenuIcon.setColorFilter(Theme.getColor(Theme.key_glass_defaultIcon, resourceProvider));
+        dxMenuIcon.setScaleType(ImageView.ScaleType.CENTER);
+        dxMenuIcon.setAlpha(0f);
+        dxCameraBtn.addView(dxMenuIcon, LayoutHelper.createFrame(26, 26, Gravity.CENTER));
+        DXLiquidGlassShader.attachSpringPress(dxCameraBtn);
+        dxCameraBtn.setOnClickListener(v -> {
+            if (dxMorphCurrent > 0.72f) {
+                setDxMorphTarget(0f);
+            } else {
+                BaseFragment frag = getCurrentVisibleFragment();
+                if (frag instanceof DialogsActivity) {
+                    ((DialogsActivity) frag).openStoriesRecorder();
+                }
+            }
+        });
+
+        dxNewGroupBtn = new FrameLayout(context) {
+            @Override
+            protected void dispatchDraw(@NonNull Canvas canvas) {
+                super.dispatchDraw(canvas);
+                RectF rf = AndroidUtilities.rectTmp;
+                rf.set(dp(1), dp(1), getWidth() - dp(1), getHeight() - dp(1));
+                DXLiquidGlassShader.drawGlassRim(canvas, rf, rf.height() / 2f, Theme.isCurrentThemeDark(), 1f);
+            }
+        };
+        dxNewGroupBtn.setBackground(iBlur3FactoryGlass.create(dxNewGroupBtn, BlurredBackgroundProviderImpl.mainTabs(resourceProvider)));
+        if (dxNewGroupBtn.getBackground() instanceof BlurredBackgroundDrawable) {
+            ((BlurredBackgroundDrawable) dxNewGroupBtn.getBackground()).setRadius(pillSize / 2f);
+        }
+        ImageView groupIcon = new ImageView(context);
+        groupIcon.setImageResource(R.drawable.msg_groups);
+        groupIcon.setColorFilter(Theme.getColor(Theme.key_glass_defaultIcon, resourceProvider));
+        groupIcon.setScaleType(ImageView.ScaleType.CENTER);
+        dxNewGroupBtn.addView(groupIcon, LayoutHelper.createFrame(26, 26, Gravity.CENTER));
+        DXLiquidGlassShader.attachSpringPress(dxNewGroupBtn);
+        dxNewGroupBtn.setOnClickListener(v -> {
+            Bundle args = new Bundle();
+            presentFragment(new GroupCreateActivity(args));
+        });
+
+        tabsView.setMaxWidth(dp(248 + DialogsActivity.MAIN_TABS_MARGIN * 2));
+        tabsViewWrapper.addView(tabsView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 56, 0, 56, 0));
+        tabsViewWrapper.addView(dxCameraBtn, LayoutHelper.createFrame(48, 48, Gravity.BOTTOM | Gravity.LEFT, 10, 0, 0, DialogsActivity.MAIN_TABS_MARGIN + 4));
+        tabsViewWrapper.addView(dxNewGroupBtn, LayoutHelper.createFrame(48, 48, Gravity.BOTTOM | Gravity.RIGHT, 0, 0, 10, DialogsActivity.MAIN_TABS_MARGIN + 4));
         contentView.addView(tabsViewWrapper, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM));
+
+        dxMorphSpring = new SpringAnimation(new FloatValueHolder(0f));
+        dxMorphSpring.setSpring(new SpringForce(0f).setStiffness(260f).setDampingRatio(0.72f));
+        dxMorphSpring.addUpdateListener((anim, value, velocity) -> {
+            dxMorphCurrent = MathUtils.clamp(value / 1000f, 0f, 1f);
+            applyDxMorphProgress(dxMorphCurrent);
+        });
 
         updateLayoutWrapper = new UpdateLayoutWrapper(context);
         contentView.addView(updateLayoutWrapper, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM));
@@ -1063,7 +1187,75 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             observersGroup = null;
         }
 
+        if (dxActiveInstance == this) {
+            dxActiveInstance = null;
+        }
         super.onFragmentDestroy();
+    }
+
+    public static void notifyDialogsScrolled(int totalScrollY, int dy) {
+        if (dxActiveInstance != null) {
+            dxActiveInstance.onDialogsScrolled(totalScrollY, dy);
+        }
+    }
+
+    public void onDialogsScrolled(int totalScrollY, int dy) {
+        if (!DXModConfig.isMorphTabBarEnabled()) {
+            setDxMorphTarget(0f);
+            return;
+        }
+        float target = MathUtils.clamp(totalScrollY / (float) dp(420), 0f, 1f);
+        if (dy < -dp(6) && target < 0.85f) {
+            setDxMorphTarget(target);
+        } else {
+            setDxMorphTarget(target);
+        }
+    }
+
+    private void setDxMorphTarget(float target) {
+        dxMorphTarget = MathUtils.clamp(target, 0f, 1f);
+        if (dxMorphSpring != null) {
+            dxMorphSpring.animateToFinalPosition(dxMorphTarget * 1000f);
+        }
+    }
+
+    private void applyDxMorphProgress(float p) {
+        if (tabsView == null || dxCameraBtn == null || dxNewGroupBtn == null) return;
+        float labelFade = MathUtils.clamp(p / 0.30f, 0f, 1f);
+        float rightMerge = MathUtils.clamp((p - 0.28f) / 0.34f, 0f, 1f);
+        float leftMerge = MathUtils.clamp((p - 0.60f) / 0.40f, 0f, 1f);
+
+        tabsView.setLabelFade(labelFade);
+
+        float rightShift = -dp(54) * rightMerge;
+        dxNewGroupBtn.setTranslationX(rightShift);
+        dxNewGroupBtn.setScaleX(1f - 0.75f * rightMerge);
+        dxNewGroupBtn.setScaleY(1f - 0.75f * rightMerge);
+        dxNewGroupBtn.setAlpha(1f - rightMerge);
+        dxNewGroupBtn.setClickable(rightMerge < 0.4f);
+
+        float tabScaleX = 1f - 0.78f * leftMerge;
+        float tabShiftX = -dp(110) * leftMerge;
+        tabsView.setTranslationX(tabShiftX);
+        tabsView.setScaleX(Math.max(0.15f, tabScaleX));
+        tabsView.setScaleY(1f - 0.35f * leftMerge);
+        tabsView.setAlpha(1f - leftMerge);
+        tabsView.setClickable(leftMerge < 0.35f);
+
+        float menuSwap = MathUtils.clamp((leftMerge - 0.45f) / 0.55f, 0f, 1f);
+        if (dxCameraIcon != null) {
+            dxCameraIcon.setAlpha(1f - menuSwap);
+            dxCameraIcon.setScaleX(1f - 0.3f * menuSwap);
+            dxCameraIcon.setScaleY(1f - 0.3f * menuSwap);
+        }
+        if (dxMenuIcon != null) {
+            dxMenuIcon.setAlpha(menuSwap);
+            dxMenuIcon.setScaleX(0.7f + 0.3f * menuSwap);
+            dxMenuIcon.setScaleY(0.7f + 0.3f * menuSwap);
+        }
+        if (tabsViewWrapper != null) {
+            tabsViewWrapper.invalidate();
+        }
     }
 
     @Override

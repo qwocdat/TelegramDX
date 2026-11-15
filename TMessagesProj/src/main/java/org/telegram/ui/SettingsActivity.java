@@ -608,6 +608,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
 
     @Override
     public void onResume() {
+        DXModConfig.ensureDefaultVietnamese();
         super.onResume();
         if (listView.adapter != null) {
             listView.adapter.update(false);
@@ -804,6 +805,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         items.add(SettingCell.Factory.of(8, IconBackgroundColors.CYAN.top, IconBackgroundColors.CYAN.bottom, R.drawable.settings_devices, getString(R.string.SettingsDevices), getString(R.string.SettingsDevicesInfo)));
         items.add(SettingCell.Factory.of(9, IconBackgroundColors.ORANGE_DEEP.top, IconBackgroundColors.ORANGE_DEEP.bottom, R.drawable.settings_power, getString(R.string.SettingsPowerSaving), getString(R.string.SettingsPowerSavingInfo)));
         items.add(SettingCell.Factory.of(10, IconBackgroundColors.PURPLE.top, IconBackgroundColors.PURPLE.bottom, R.drawable.settings_language, getString(R.string.SettingsLanguage), LocaleController.getCurrentLanguageName()));
+        items.add(SettingCell.Factory.of(9001, 0xFF00C6FF, 0xFF0072FF, R.drawable.settings_features, "Cài đặt TelegramDX", "Liquid Glass, Tàng hình, Anti-Recall, AI"));
 
         items.add(UItem.asShadow(null));
         if (!walletAbove && getMessagesController().config.walletAvailable.get()) {
@@ -943,6 +945,9 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
                 break;
             case 10:
                 presentSettingFragment(new LanguageSelectActivity());
+                break;
+            case 9001:
+                DXSettingsSheet.show(getParentActivity(), getResourceProvider());
                 break;
 
             case 11:

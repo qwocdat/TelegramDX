@@ -597,6 +597,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
     private float additionalFloatingTranslation;
     private float floatingButtonPanOffset;
+    private int dxTotalScrollY = 0;
 
     private AnimatorSet searchAnimator;
     private float searchAnimationProgress;
@@ -4422,6 +4423,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
                 @Override
                 public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                    if (hasMainTabs && !isArchive() && initialDialogsType == DIALOGS_TYPE_DEFAULT && !searching) {
+                        dxTotalScrollY = Math.max(0, dxTotalScrollY + dy);
+                        MainTabsActivity.notifyDialogsScrolled(dxTotalScrollY, dy);
+                    }
                     if (contentView != null) {
                         contentView.updateBlurContent();
                     }
@@ -8782,7 +8787,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void updateFloatingButtonVisibility(boolean animated) {
-        final boolean isVisible = !(onlySelect && initialDialogsType != 10 || folderId != 0 || communityId != 0 || inPreviewMode || (searching && !onlySelect) || floatingButtonHidden);
+        final boolean hideForDxBottomBar = hasMainTabs && !isArchive() && initialDialogsType == DIALOGS_TYPE_DEFAULT && DXModConfig.isMorphTabBarEnabled();
+        final boolean isVisible = !hideForDxBottomBar && !(onlySelect && initialDialogsType != 10 || folderId != 0 || communityId != 0 || inPreviewMode || (searching && !onlySelect) || floatingButtonHidden);
 
         if (floatingButton3 != null) {
             floatingButton3.setButtonVisible(isVisible, animated);
@@ -13168,7 +13174,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         presentFragment(new ContactsActivity(args));
     }
 
-    private void openStoriesRecorder() {
+    public void openStoriesRecorder() {
         if (!storiesEnabled) {
             if (storyPremiumHint != null) {
                 if (storyPremiumHint.shown()) {

@@ -120,6 +120,25 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         checkVisualWidth();
     }
 
+    private float dxLabelFade = 0f;
+    public void setLabelFade(float fade) {
+        float clamped = MathUtils.clamp(fade, 0f, 1f);
+        if (Math.abs(dxLabelFade - clamped) > 0.002f) {
+            dxLabelFade = clamped;
+            if (textView != null) {
+                textView.setAlpha(1f - clamped);
+                textView.setScaleY(1f - 0.25f * clamped);
+            }
+            if (imageView != null) {
+                imageView.setTranslationY(dp(6f * clamped));
+            }
+            if (backupImageView != null) {
+                backupImageView.setTranslationY(dp(6f * clamped));
+            }
+            invalidate();
+        }
+    }
+
     private void checkVisualWidth() {
         if (hasVisualWidth) {
             final float offset = (visualWidth - getMeasuredWidth()) / 2f;

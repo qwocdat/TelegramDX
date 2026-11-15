@@ -72,6 +72,7 @@ import org.telegram.ui.Components.SizeNotifierFrameLayout;
 import org.telegram.ui.Components.SnowflakesEffect;
 import org.telegram.ui.Components.blur3.BlurredBackgroundDrawableViewFactory;
 import org.telegram.ui.Components.blur3.drawable.BlurredBackgroundDrawable;
+import org.telegram.ui.Components.blur3.DXLiquidGlassShader;
 import org.telegram.ui.Components.blur3.drawable.color.BlurredBackgroundColorProvider;
 import org.telegram.utils.glass.source.GlassSourceCrossfade;
 import org.telegram.ui.MainTabsLayout;
@@ -2541,6 +2542,10 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
             return;
         }
 
+        if ((glassDrawable != null || blurredBackground) && getWidth() > 0 && getHeight() > 0) {
+            rectTmp.set(dp(6), dp(4), getWidth() - dp(6), getHeight() - dp(4));
+            DXLiquidGlassShader.drawGlassRim(canvas, rectTmp, dp(22), Theme.isCurrentThemeDark(), 0.55f);
+        }
         super.dispatchDraw(canvas);
     }
 

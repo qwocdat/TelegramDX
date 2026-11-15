@@ -37,6 +37,7 @@ import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.Loadable;
 import org.telegram.ui.Components.LoadingDrawable;
 import org.telegram.ui.Components.ScaleStateListAnimator;
+import org.telegram.ui.Components.blur3.DXLiquidGlassShader;
 
 public class ButtonWithCounterView extends FrameLayout implements Loadable, Theme.Colorable {
 
@@ -112,6 +113,7 @@ public class ButtonWithCounterView extends FrameLayout implements Loadable, Them
         this.resourcesProvider = resourcesProvider;
 
         ScaleStateListAnimator.apply(this, .02f, 1.2f);
+        DXLiquidGlassShader.attachSpringPress(this);
 
         rippleView = new View(context);
         addView(rippleView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));

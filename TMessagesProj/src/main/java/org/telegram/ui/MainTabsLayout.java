@@ -25,6 +25,7 @@ import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.AnimatedLinearLayout;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.glass.GlassTabView;
+import org.telegram.ui.Components.blur3.DXLiquidGlassShader;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -321,6 +322,20 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         }
 
         super.dispatchDraw(canvas);
+        if (getWidth() > 0 && getHeight() > 0) {
+            final android.graphics.RectF rimRect = org.telegram.messenger.AndroidUtilities.rectTmp;
+            rimRect.set(getPaddingLeft() - dp(3), getPaddingTop() - dp(3), getWidth() - getPaddingRight() + dp(3), getHeight() - getPaddingBottom() + dp(3));
+            DXLiquidGlassShader.drawGlassRim(canvas, rimRect, rimRect.height() / 2f, Theme.isCurrentThemeDark(), 0.9f);
+        }
+    }
+
+    public void setLabelFade(float fade) {
+        for (int a = 0, N = getChildCount(); a < N; a++) {
+            final View child = getChildAt(a);
+            if (child instanceof GlassTabView) {
+                ((GlassTabView) child).setLabelFade(fade);
+            }
+        }
     }
 
 

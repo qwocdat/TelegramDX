@@ -44,6 +44,7 @@ import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.Utilities;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.blur3.DXLiquidGlassShader;
 import org.telegram.ui.ActionBar.ThemeBind;
 import org.telegram.ui.Adapters.FiltersView;
 import org.telegram.ui.DialogsActivity;
@@ -544,6 +545,11 @@ public class SeekBarView extends FrameLayout implements Theme.Colorable {
             canvas.drawCircle(thumbX + selectorWidth / 2, y + thumbSize / 2, currentRadius * newCircleProgress, outerPaint1);
         } else {
             canvas.drawCircle(thumbX + selectorWidth / 2, y + thumbSize / 2, currentRadius, outerPaint1);
+            float cx = thumbX + selectorWidth / 2f;
+            float cy = y + thumbSize / 2f;
+            float rGlass = currentRadius * (pressed ? 1.22f : 1.05f);
+            AndroidUtilities.rectTmp.set(cx - rGlass, cy - rGlass, cx + rGlass, cy + rGlass);
+            DXLiquidGlassShader.drawGlassRim(canvas, AndroidUtilities.rectTmp, rGlass, Theme.isCurrentThemeDark(), 0.95f);
         }
 
         drawTimestampLabel(canvas);
