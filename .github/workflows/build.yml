@@ -54,17 +54,22 @@ jobs:
             if [ -f "patches/apply_dx_hooks.py" ]; then
               python3 patches/apply_dx_hooks.py
             fi
+            git checkout -- .github/workflows/ 2>/dev/null || true
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add -A
             if ! git diff --cached --quiet; then
               git commit -m "Apply TelegramDX LiquidGlass & Privacy mod [skip ci]"
-              git push origin HEAD:master
+              git pull --rebase origin master || true
+              git push origin HEAD:master || true
             else
-              echo "Không có thay đổi code nào sau khi giải nén."
+              echo "Không có thay đổi code nào khác so với bản cũ, tiến hành build trực tiếp."
             fi
-          elif [ -f "patches/apply_dx_hooks.py" ]; then
-            python3 patches/apply_dx_hooks.py
+          else
+            echo "Không có file .zip nào, tiến hành build bình thường."
+            if [ -f "patches/apply_dx_hooks.py" ]; then
+              python3 patches/apply_dx_hooks.py
+            fi
           fi
 
       - name: Set up JDK 21
@@ -137,14 +142,18 @@ jobs:
         if: steps.so-cache.outputs.cache-hit != 'true'
         run: |
           mkdir -p prebuilt_so/arm64-v8a
-          APK_FILE=$(find TMessagesProj_App/build/outputs/apk -name "*.apk" | head -n 1)
-          unzip -j -o "$APK_FILE" "lib/arm64-v8a/*.so" -d prebuilt_so/arm64-v8a/
+          APK_FILE=$(find . -path "*/build/outputs/apk/*.apk" | head -n 1)
+          if [ -n "$APK_FILE" ]; then
+            unzip -j -o "$APK_FILE" "lib/arm64-v8a/*.so" -d prebuilt_so/arm64-v8a/ || true
+          else
+            find . -path "*/arm64-v8a/*.so" -exec cp -f {} prebuilt_so/arm64-v8a/ \; || true
+          fi
 
       - name: Upload APK to Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: TelegramDX-${{ inputs.build_type || 'debug' }}-APK
-          path: TMessagesProj_App/build/outputs/apk/**/*.apk
+          path: "**/build/outputs/apk/**/*.apk"
 
       - name: Create GitHub Release (Optional)
         if: inputs.publish_release == true
@@ -152,4 +161,4 @@ jobs:
         with:
           tag_name: build-${{ github.run_number }}
           name: TelegramDX Build #${{ github.run_number }}
-          files: TMessagesProj_App/build/outputs/apk/**/*.apk
+          files: "**/build/outputs/apk/**/*.apk"
