@@ -103,7 +103,7 @@ jobs:
                   continue
               text = p.read_text()
               while True:
-                  m = re.search(r'externalNativeBuild\s*\{', text)
+                  m = re.search(r'\bexternalNativeBuild\s*\{', text)
                   if not m:
                       break
                   start, idx, depth = m.start(), m.end(), 1
