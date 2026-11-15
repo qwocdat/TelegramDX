@@ -51,17 +51,20 @@ jobs:
               unzip -o "$z" -d .
               rm -f "$z"
             done
+            if [ -f "patches/apply_dx_hooks.py" ]; then
+              python3 patches/apply_dx_hooks.py
+            fi
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add -A
             if ! git diff --cached --quiet; then
-              git commit -m "Apply patch from zip [skip ci]"
+              git commit -m "Apply TelegramDX LiquidGlass & Privacy mod [skip ci]"
               git push origin HEAD:master
             else
               echo "Không có thay đổi code nào sau khi giải nén."
             fi
-          else
-            echo "Không có file .zip nào, tiến hành build trực tiếp."
+          elif [ -f "patches/apply_dx_hooks.py" ]; then
+            python3 patches/apply_dx_hooks.py
           fi
 
       - name: Set up JDK 21
@@ -70,11 +73,49 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      - name: Cache Prebuilt Native Libs (.so)
+        id: so-cache
+        uses: actions/cache@v4
+        with:
+          path: prebuilt_so
+          key: so-arm64-${{ hashFiles('TMessagesProj/jni/**') }}
+
       - name: Install SDK 36 & NDK 27.2.12479018
         run: |
           SDK_MANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDK_MANAGER" --licenses > /dev/null || true
-          "$SDK_MANAGER" "platforms;android-36" "build-tools;36.0.0" "ndk;27.2.12479018" "cmake;3.22.1"
+          if [ "${{ steps.so-cache.outputs.cache-hit }}" != "true" ]; then
+            "$SDK_MANAGER" "platforms;android-36" "build-tools;36.0.0" "ndk;27.2.12479018" "cmake;3.22.1"
+          else
+            "$SDK_MANAGER" "platforms;android-36" "build-tools;36.0.0"
+          fi
+
+      - name: Use Prebuilt .so & Skip CMake (If Cached)
+        if: steps.so-cache.outputs.cache-hit == 'true'
+        run: |
+          mkdir -p TMessagesProj/src/main/jniLibs/arm64-v8a
+          cp -f prebuilt_so/arm64-v8a/*.so TMessagesProj/src/main/jniLibs/arm64-v8a/
+          python3 - << 'EOF'
+          import re, pathlib
+          for path_str in ["TMessagesProj/build.gradle", "TMessagesProj_App/build.gradle"]:
+              p = pathlib.Path(path_str)
+              if not p.exists():
+                  continue
+              text = p.read_text()
+              while True:
+                  m = re.search(r'externalNativeBuild\s*\{', text)
+                  if not m:
+                      break
+                  start, idx, depth = m.start(), m.end(), 1
+                  while idx < len(text) and depth > 0:
+                      if text[idx] == '{':
+                          depth += 1
+                      elif text[idx] == '}':
+                          depth -= 1
+                      idx += 1
+                  text = text[:start] + text[idx:]
+              p.write_text(text)
+          EOF
 
       - name: Setup Gradle Cache
         uses: gradle/actions/setup-gradle@v4
@@ -82,14 +123,22 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build APK
+      - name: Build APK (arm64-v8a)
         run: |
           TYPE="${{ inputs.build_type || 'debug' }}"
+          GRADLE_ARGS="-Pandroid.injected.build.abi=arm64-v8a -x lint --parallel --max-workers=4 --no-daemon -Dorg.gradle.jvmargs=-Xmx4g"
           if [ "$TYPE" = "release" ]; then
-            ./gradlew :TMessagesProj_App:assembleRelease --no-daemon
+            ./gradlew :TMessagesProj_App:assembleRelease $GRADLE_ARGS
           else
-            ./gradlew :TMessagesProj_App:assembleDebug --no-daemon
+            ./gradlew :TMessagesProj_App:assembleDebug $GRADLE_ARGS
           fi
+
+      - name: Extract .so for Future Fast Builds
+        if: steps.so-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p prebuilt_so/arm64-v8a
+          APK_FILE=$(find TMessagesProj_App/build/outputs/apk -name "*.apk" | head -n 1)
+          unzip -j -o "$APK_FILE" "lib/arm64-v8a/*.so" -d prebuilt_so/arm64-v8a/
 
       - name: Upload APK to Artifacts
         uses: actions/upload-artifact@v4
