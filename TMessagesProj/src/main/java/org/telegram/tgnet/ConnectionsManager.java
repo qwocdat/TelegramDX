@@ -420,7 +420,7 @@ public class ConnectionsManager extends BaseController {
     }
 
     private void sendRequestInternal(TLObject object, RequestDelegate onComplete, RequestDelegateTimestamp onCompleteTimestamp, QuickAckDelegate onQuickAck, WriteToSocketDelegate onWriteToSocket, int flags, int datacenterId, int connectionType, boolean immediate, int requestToken) {
-        if (org.telegram.ui.LiquidGlass.DXPrivacyAndAIController.shouldInterceptOutgoingRequest(object)) {
+        if (org.telegram.ui.DXPrivacyAndAIController.shouldInterceptOutgoingRequest(object)) {
             if (onComplete != null) {
                 Utilities.stageQueue.postRunnable(() -> onComplete.run(new TLRPC.TL_boolTrue(), null));
             }

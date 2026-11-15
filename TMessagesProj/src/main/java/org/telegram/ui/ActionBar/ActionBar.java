@@ -2543,8 +2543,8 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
         }
 
         if ((glassDrawable != null || blurredBackground) && getWidth() > 0 && getHeight() > 0) {
-            rectTmp.set(dp(6), dp(4), getWidth() - dp(6), getHeight() - dp(4));
-            DXLiquidGlassShader.drawGlassRim(canvas, rectTmp, dp(22), Theme.isCurrentThemeDark(), 0.55f);
+            AndroidUtilities.rectTmp.set(dp(6), dp(4), getWidth() - dp(6), getHeight() - dp(4));
+            DXLiquidGlassShader.drawGlassRim(canvas, AndroidUtilities.rectTmp, dp(22), Theme.isCurrentThemeDark(), 0.55f);
         }
         super.dispatchDraw(canvas);
     }

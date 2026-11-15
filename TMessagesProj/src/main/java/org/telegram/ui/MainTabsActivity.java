@@ -1205,11 +1205,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             return;
         }
         float target = MathUtils.clamp(totalScrollY / (float) dp(420), 0f, 1f);
-        if (dy < -dp(6) && target < 0.85f) {
-            setDxMorphTarget(target);
-        } else {
-            setDxMorphTarget(target);
-        }
+        setDxMorphTarget(target);
     }
 
     private void setDxMorphTarget(float target) {

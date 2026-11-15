@@ -5,10 +5,10 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.RenderEffect;
 import android.graphics.RuntimeShader;
-import android.graphics.Shader;
 import android.graphics.SweepGradient;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -28,7 +28,6 @@ import org.telegram.ui.DXModConfig;
 
 public class DXLiquidGlassShader {
 
-    // Real AGSL 7-band chromatic dispersion + lens refraction + vibrancy + inner shadow
     private static final String AGSL_REFRACTION_DISPERSION =
         "uniform shader img;\n" +
         "uniform float2 uSize;\n" +
@@ -81,12 +80,11 @@ public class DXLiquidGlassShader {
         "    return half4(rgb, cG.a);\n" +
         "}\n";
 
-    // Real AGSL SDF smin() Metaball Shader for 3 droplets (Camera + TabBar + NewGroup)
     private static final String AGSL_METABALL_DROPLETS =
         "uniform float2 uRes;\n" +
-        "uniform float4 uLeftRect;\n" +   // cx, cy, halfW, halfH
-        "uniform float4 uCenterRect;\n" + // cx, cy, halfW, halfH
-        "uniform float4 uRightRect;\n" +  // cx, cy, halfW, halfH
+        "uniform float4 uLeftRect;\n" +
+        "uniform float4 uCenterRect;\n" +
+        "uniform float4 uRightRect;\n" +
         "uniform float uSmoothK;\n" +
         "uniform float2 uLightDir;\n" +
         "uniform half4 uTint;\n" +
@@ -124,6 +122,7 @@ public class DXLiquidGlassShader {
     private static float lightDirX = 0.707f;
     private static float lightDirY = -0.707f;
     private static boolean sensorRegistered = false;
+    private static final RectF internalRectF = new RectF();
 
     public static void ensureGravitySensor(Context context) {
         if (sensorRegistered || context == null) return;
@@ -155,6 +154,12 @@ public class DXLiquidGlassShader {
 
     public static float getLightAngleDeg() {
         return (float) Math.toDegrees(Math.atan2(lightDirY, lightDirX));
+    }
+
+    public static void drawGlassRim(Canvas canvas, Rect rect, float radius, boolean isDark, float alphaMul) {
+        if (rect == null) return;
+        internalRectF.set(rect);
+        drawGlassRim(canvas, internalRectF, radius, isDark, alphaMul);
     }
 
     public static void drawGlassRim(Canvas canvas, RectF rect, float radius, boolean isDark, float alphaMul) {
@@ -224,7 +229,7 @@ public class DXLiquidGlassShader {
                     shader.setFloatUniform("uTint", 0.14f, 0.16f, 0.22f, 0.42f);
                     shader.setFloatUniform("uRimColor", 0.85f, 0.92f, 1.0f, 0.85f);
                 } else {
-                    shader.setFloatUniform("uTint", 0.96f, 0.98f, 1.0f, 0.48f);
+                    shader.setFloatUniform("uTint", 0.96f, 0.98f, 0.99f, 0.48f);
                     shader.setFloatUniform("uRimColor", 1.0f, 1.0f, 1.0f, 0.95f);
                 }
                 paint.setShader(shader);

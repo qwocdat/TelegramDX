@@ -1,13 +1,9 @@
 package org.telegram.messenger;
 
-import android.app.Activity;
-import android.os.Bundle;
 import org.telegram.messenger.regular.BuildConfig;
 import org.telegram.tgnet.TLRPC;
-import org.telegram.ui.LiquidGlass.DXModConfig;
-import org.telegram.ui.LiquidGlass.DXPrivacyAndAIController;
-import org.telegram.ui.LiquidGlass.DXViewHookInjector;
-import org.telegram.ui.LiquidGlass.LiquidGlassEffectHelper;
+import org.telegram.ui.DXModConfig;
+import org.telegram.ui.DXPrivacyAndAIController;
 
 public class ApplicationLoaderImpl extends ApplicationLoader {
     @Override
@@ -18,42 +14,12 @@ public class ApplicationLoaderImpl extends ApplicationLoader {
     @Override
     public void onCreate() {
         super.onCreate();
-        DXModConfig.load();
-
-        // Đặt ngôn ngữ mặc định là Tiếng Việt ngay lần chạy đầu tiên
         AndroidUtilities.runOnUIThread(() -> {
-            DXViewHookInjector.applyDefaultVietnameseLocaleIfNeeded();
+            DXModConfig.ensureDefaultVietnamese();
             for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
                 DXPrivacyAndAIController.getInstance().init(a);
             }
         }, 600);
-
-        registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
-            @Override
-            public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
-                DXViewHookInjector.applyDefaultVietnameseLocaleIfNeeded();
-            }
-
-            @Override
-            public void onActivityStarted(Activity activity) {}
-
-            @Override
-            public void onActivityResumed(Activity activity) {
-                LiquidGlassEffectHelper.attachToActivity(activity);
-            }
-
-            @Override
-            public void onActivityPaused(Activity activity) {}
-
-            @Override
-            public void onActivityStopped(Activity activity) {}
-
-            @Override
-            public void onActivitySaveInstanceState(Activity activity, Bundle outState) {}
-
-            @Override
-            public void onActivityDestroyed(Activity activity) {}
-        });
     }
 
     @Override
