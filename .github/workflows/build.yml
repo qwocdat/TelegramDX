@@ -99,7 +99,8 @@ jobs:
         if: steps.so-cache.outputs.cache-hit == 'true'
         run: |
           mkdir -p TMessagesProj/src/main/jniLibs/arm64-v8a
-          cp -f prebuilt_so/arm64-v8a/*.so TMessagesProj/src/main/jniLibs/arm64-v8a/
+          cp -f prebuilt_so/arm64-v8a/libtmessages*.so TMessagesProj/src/main/jniLibs/arm64-v8a/ 2>/dev/null || true
+          cp -f prebuilt_so/arm64-v8a/libtwidget*.so TMessagesProj/src/main/jniLibs/arm64-v8a/ 2>/dev/null || true
           python3 - << 'EOF'
           import re, pathlib
           for path_str in ["TMessagesProj/build.gradle", "TMessagesProj_App/build.gradle"]:
