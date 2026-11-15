@@ -748,7 +748,7 @@ public class LocaleController {
             if (currentInfo == null) {
                 currentInfo = getLanguageFromDict(getLocaleString(systemDefaultLocale));
                 if (currentInfo == null) {
-                    currentInfo = getLanguageFromDict("en");
+                    currentInfo = getLanguageFromDict("vi") != null ? getLanguageFromDict("vi") : getLanguageFromDict("en");
                 }
             }
 
