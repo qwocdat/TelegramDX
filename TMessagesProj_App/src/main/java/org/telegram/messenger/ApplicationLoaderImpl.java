@@ -60,13 +60,21 @@ public class ApplicationLoaderImpl extends ApplicationLoader {
     public void processUpdate(int currentAccount, TLRPC.Update update) {
         super.processUpdate(currentAccount, update);
         if (update == null) return;
-        if (update instanceof TLRPC.TL_updateUserStatus) {
-            TLRPC.TL_updateUserStatus st = (TLRPC.TL_updateUserStatus) update;
-            String desc = (st.status instanceof TLRPC.TL_userStatusOnline) ? "Trực tuyến" : "Rời mạng";
-            DXPrivacyAndAIController.getInstance().recordRealtimeUserActivity(st.user_id, desc);
-        } else if (update instanceof TLRPC.TL_updateUserTyping) {
-            TLRPC.TL_updateUserTyping tp = (TLRPC.TL_updateUserTyping) update;
-            DXPrivacyAndAIController.getInstance().recordRealtimeUserActivity(tp.user_id, "Đang soạn tin");
+        String clsName = update.getClass().getSimpleName();
+        if (clsName.contains("updateUserStatus")) {
+            try {
+                long uid = update.getClass().getField("user_id").getLong(update);
+                Object st = update.getClass().getField("status").get(update);
+                String desc = (st != null && st.getClass().getSimpleName().contains("Online")) ? "Trực tuyến" : "Rời mạng";
+                DXPrivacyAndAIController.getInstance().recordRealtimeUserActivity(uid, desc);
+            } catch (Throwable ignored) {
+            }
+        } else if (clsName.contains("updateUserTyping")) {
+            try {
+                long uid = update.getClass().getField("user_id").getLong(update);
+                DXPrivacyAndAIController.getInstance().recordRealtimeUserActivity(uid, "Đang soạn tin");
+            } catch (Throwable ignored) {
+            }
         }
     }
 }
