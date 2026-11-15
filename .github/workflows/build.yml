@@ -157,9 +157,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: TelegramDX-${{ inputs.build_type || 'debug' }}-APK
-          path: |
-            **/*.apk
-            !**/intermediates/**
+          path: "**/*.apk"
 
       - name: Create GitHub Release (Optional)
         if: inputs.publish_release == true
@@ -167,6 +165,4 @@ jobs:
         with:
           tag_name: build-${{ github.run_number }}
           name: TelegramDX Build #${{ github.run_number }}
-          files: |
-            **/*.apk
-            !**/intermediates/**
+          files: "**/*.apk"
