@@ -88,10 +88,10 @@ public class DXPrivacyAndAIController implements NotificationCenter.Notification
         }
 
         // 3. Ẩn hoạt động (Online) của bản thân đối với người khác
-        if (DXModConfig.ghostHideOnlineStatus) {
-            if (object instanceof TLRPC.TL_account_updateStatus) {
-                TLRPC.TL_account_updateStatus statusReq = (TLRPC.TL_account_updateStatus) object;
-                statusReq.offline = true; // Luôn báo với server là đang offline
+        if (DXModConfig.ghostHideOnlineStatus && name.contains("updateStatus")) {
+            try {
+                object.getClass().getField("offline").setBoolean(object, true);
+            } catch (Throwable ignored) {
             }
         }
 
@@ -229,9 +229,7 @@ public class DXPrivacyAndAIController implements NotificationCenter.Notification
                         final String replyText = msgObj != null ? msgObj.optString("content", "").trim() : "";
                         if (!TextUtils.isEmpty(replyText)) {
                             AndroidUtilities.runOnUIThread(() -> {
-                                SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(
-                                    replyText, dialogId, null, null, null, true, null, null, null, true, 0, null, false
-                                );
+                                SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(replyText, dialogId);
                                 SendMessagesHelper.getInstance(account).sendMessage(params);
                             });
                         }

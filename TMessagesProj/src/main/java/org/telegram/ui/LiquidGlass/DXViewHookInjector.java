@@ -109,8 +109,10 @@ public class DXViewHookInjector {
             LaunchActivity launch = (LaunchActivity) activity;
             BaseFragment top = launch.getActionBarLayout().getLastFragment();
             if (top instanceof DialogsActivity) {
-                // Mở trình quay/chụp Story nhanh của Telegram
-                ((DialogsActivity) top).openStoryRecorder();
+                // Mở trình quay/chụp Story nhanh của Telegram qua StoryRecorder
+                Class<?> srCls = Class.forName("org.telegram.ui.Stories.recorder.StoryRecorder");
+                Object sr = srCls.getMethod("getInstance", Activity.class, int.class).invoke(null, activity, UserConfig.selectedAccount);
+                srCls.getMethod("open", android.view.View.class).invoke(sr, (Object) null);
             }
         } catch (Throwable ignored) {
         }
@@ -120,7 +122,7 @@ public class DXViewHookInjector {
         if (!(activity instanceof LaunchActivity)) return;
         try {
             LaunchActivity launch = (LaunchActivity) activity;
-            launch.presentFragment(new GroupCreateActivity());
+            launch.presentFragment(new GroupCreateActivity(new android.os.Bundle()));
         } catch (Throwable ignored) {
         }
     }
